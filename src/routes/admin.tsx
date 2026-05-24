@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin")({
   component: Admin,
 });
 
-const ADMIN_PASS = "admin123";
+const ADMIN_PASS = "abdrhman2006";
 
 type Row = { id: string; name: string; votes: number };
 
