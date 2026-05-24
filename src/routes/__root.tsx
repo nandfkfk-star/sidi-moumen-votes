@@ -89,6 +89,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap",
       },
     ],
+    scripts: [
+      {
+        src: "https://pl29467076.effectivecpmnetwork.com/94/d9/07/94d907941924e84a1bf30b58179b0b1b.js",
+        async: true,
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
