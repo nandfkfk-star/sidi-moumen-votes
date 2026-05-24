@@ -88,8 +88,8 @@ export default function Leaderboard() {
   );
 
   const vote = async (id: string) => {
-    if (voted.has(id)) return;
-    add(id);
+    if (hasVoted) return;
+    mark(id);
     await runTransaction(ref(db, `neighborhoods/${id}/votes`), (cur) => (cur || 0) + 1);
   };
 
