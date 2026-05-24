@@ -175,7 +175,7 @@ export default function Leaderboard() {
             ) : (
               filtered.map((n) => {
                 const rank = sorted.findIndex((x) => x.id === n.id) + 1;
-                const hasVoted = voted.has(n.id);
+                const isMine = votedId === n.id;
                 const isTop = rank <= 3;
                 const color = rankColor(rank - 1);
                 return (
