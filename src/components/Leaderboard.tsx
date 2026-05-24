@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { ref, onValue, runTransaction, set, get } from "firebase/database";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Search, ThumbsUp, Check, BarChart3 } from "lucide-react";
+import { Search, Heart, Check, BarChart3, Star } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid,
 } from "recharts";
 import { db, INITIAL_NEIGHBORHOODS } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 type Neighborhood = { id: string; name: string; votes: number };
 
 const STORAGE_KEY = "sm_voted_neighborhoods";
+
+// Cycle of vivid rank-circle colors (like the screenshot)
+const RANK_COLORS = [
+  "oklch(0.78 0.16 70)",   // orange (gold-ish)
+  "oklch(0.7 0.18 35)",    // orange
+  "oklch(0.7 0.17 150)",   // green
+  "oklch(0.6 0.2 260)",    // blue
+  "oklch(0.72 0.17 150)",  // green
+  "oklch(0.7 0.17 150)",
+  "oklch(0.62 0.2 260)",
+  "oklch(0.7 0.18 35)",
+  "oklch(0.72 0.17 150)",
+  "oklch(0.6 0.2 260)",
+];
+const rankColor = (i: number) => RANK_COLORS[i % RANK_COLORS.length];
 
 function useVotedSet() {
   const [voted, setVoted] = useState<Set<string>>(new Set());
@@ -38,15 +52,13 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const { voted, add } = useVotedSet();
 
-  // Seed initial data once
   useEffect(() => {
     const seed = async () => {
       const snap = await get(ref(db, "neighborhoods"));
       if (!snap.exists()) {
         const obj: Record<string, { name: string; votes: number }> = {};
         INITIAL_NEIGHBORHOODS.forEach((name, i) => {
-          const id = `n${i}`;
-          obj[id] = { name, votes: 0 };
+          obj[`n${i}`] = { name, votes: 0 };
         });
         await set(ref(db, "neighborhoods"), obj);
       }
@@ -54,7 +66,6 @@ export default function Leaderboard() {
     seed().catch(console.error);
   }, []);
 
-  // Live subscription
   useEffect(() => {
     const unsub = onValue(ref(db, "neighborhoods"), (snap) => {
       const data = snap.val() || {};
@@ -89,173 +100,182 @@ export default function Leaderboard() {
   const top3 = sorted.slice(0, 3);
   const chartData = sorted.slice(0, 10).map((n) => ({ name: n.name, votes: n.votes }));
 
+  // Podium order in display: 3, 1, 2 (left -> middle tallest -> right)
+  const podiumDisplay = [
+    { n: top3[2], rank: 3, h: 130, grad: "var(--gradient-podium-3)", medal: "🥉" },
+    { n: top3[0], rank: 1, h: 180, grad: "var(--gradient-podium-1)", medal: "🥇" },
+    { n: top3[1], rank: 2, h: 150, grad: "var(--gradient-podium-2)", medal: "🥈" },
+  ];
+
   return (
     <div className="space-y-10">
-      {/* Top 3 */}
+      {/* Podium */}
       <section>
-        <div className="flex items-center gap-2 mb-4">
-          <Trophy className="text-[var(--gold)]" />
-          <h2 className="text-2xl font-bold">أفضل 3 أحياء</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 0, 2].map((order) => {
-            const n = top3[order];
-            if (!n) return <div key={order} />;
-            const medal = order === 0 ? "gold" : order === 1 ? "silver" : "bronze";
-            const colors: Record<string, string> = {
-              gold: "var(--gold)", silver: "var(--silver)", bronze: "var(--bronze)",
-            };
-            return (
-              <motion.div
-                key={n.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: order * 0.1 }}
-                className="rounded-2xl p-6 bg-card shadow-[var(--shadow-soft)] border text-center relative overflow-hidden"
-                style={{ background: "var(--gradient-card)" }}
-              >
+        <div className="grid grid-cols-3 gap-3 items-end">
+          {podiumDisplay.map((p, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="flex flex-col items-center"
+            >
+              <div className="text-3xl mb-1 drop-shadow-sm">{p.medal}</div>
+              {p.n ? (
+                <>
+                  <div className="text-center mb-2">
+                    <p className="font-bold text-sm md:text-base">{p.n.name}</p>
+                    <p className="text-xs text-primary font-semibold">{p.n.votes} صوت</p>
+                  </div>
+                  <div
+                    className="w-full rounded-t-2xl shadow-[var(--shadow-podium)] flex items-start justify-center pt-3 text-white font-extrabold text-lg"
+                    style={{ background: p.grad, height: p.h }}
+                  >
+                    #{p.rank}
+                  </div>
+                </>
+              ) : (
                 <div
-                  className="absolute top-0 inset-x-0 h-1.5"
-                  style={{ backgroundColor: colors[medal] }}
-                />
-                <Trophy
-                  className="mx-auto mb-3"
-                  size={order === 0 ? 48 : 36}
-                  style={{ color: colors[medal] }}
-                />
-                <div className="text-sm text-muted-foreground mb-1">#{order + 1}</div>
-                <h3 className="text-xl font-bold mb-1">{n.name}</h3>
-                <p className="text-2xl font-extrabold text-primary">{n.votes}</p>
-                <p className="text-xs text-muted-foreground">صوت</p>
-              </motion.div>
-            );
-          })}
+                  className="w-full rounded-t-2xl bg-muted flex items-start justify-center pt-3 text-muted-foreground font-extrabold text-lg"
+                  style={{ height: p.h }}
+                >
+                  #{p.rank}
+                </div>
+              )}
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* Search + Table */}
-      <section className="rounded-2xl bg-card border shadow-[var(--shadow-soft)] overflow-hidden">
-        <div className="p-4 border-b bg-secondary/40">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input
-              placeholder="ابحث عن حي..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pr-10 h-11 bg-background"
-            />
-          </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-primary" size={20} />
+        <Input
+          placeholder="🔎 ابحث عن حي..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pr-12 h-14 rounded-full bg-card border-2 border-primary/20 shadow-[var(--shadow-soft)] text-base"
+        />
+      </div>
+
+      {/* Leaderboard table card */}
+      <section className="rounded-3xl bg-card border-2 border-primary/15 shadow-[var(--shadow-soft)] overflow-hidden">
+        <div
+          className="px-4 py-4 text-white grid grid-cols-[60px_1fr_100px_110px] gap-2 font-bold text-sm md:text-base"
+          style={{ background: "var(--gradient-table-head)" }}
+        >
+          <div>#</div>
+          <div>🏘️ الحي</div>
+          <div className="text-center">❤️ الأصوات</div>
+          <div className="text-center">تصويت</div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-right">
-            <thead className="bg-secondary/30 text-sm">
-              <tr>
-                <th className="p-3 font-semibold">#</th>
-                <th className="p-3 font-semibold">الحي</th>
-                <th className="p-3 font-semibold">الأصوات</th>
-                <th className="p-3 font-semibold">النسبة</th>
-                <th className="p-3 font-semibold">التصويت</th>
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence>
-                {loading ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">جاري التحميل...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">لا توجد نتائج</td></tr>
-                ) : (
-                  filtered.map((n) => {
-                    const rank = sorted.findIndex((x) => x.id === n.id) + 1;
-                    const pct = totalVotes ? (n.votes / totalVotes) * 100 : 0;
-                    const hasVoted = voted.has(n.id);
-                    const isTop = rank <= 3;
-                    return (
-                      <motion.tr
-                        key={n.id}
-                        layout
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="border-t hover:bg-secondary/20 transition-colors"
+        <div className="divide-y">
+          <AnimatePresence>
+            {loading ? (
+              <div className="p-8 text-center text-muted-foreground">جاري التحميل...</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">لا توجد نتائج</div>
+            ) : (
+              filtered.map((n) => {
+                const rank = sorted.findIndex((x) => x.id === n.id) + 1;
+                const hasVoted = voted.has(n.id);
+                const isTop = rank <= 3;
+                const color = rankColor(rank - 1);
+                return (
+                  <motion.div
+                    key={n.id}
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="px-4 py-3 grid grid-cols-[60px_1fr_100px_110px] gap-2 items-center hover:bg-secondary/30 transition-colors"
+                  >
+                    <div>
+                      <span
+                        className="inline-flex items-center justify-center w-10 h-10 rounded-full text-white font-bold shadow-md ring-2 ring-white"
+                        style={{ backgroundColor: color }}
                       >
-                        <td className="p-3">
-                          <span
-                            className={`inline-flex items-center justify-center w-9 h-9 rounded-full font-bold text-sm ${
-                              isTop ? "text-white" : "bg-secondary text-foreground"
-                            }`}
-                            style={isTop ? {
-                              backgroundColor: rank === 1 ? "var(--gold)" :
-                                rank === 2 ? "var(--silver)" : "var(--bronze)",
-                            } : {}}
-                          >
-                            {rank}
-                          </span>
-                        </td>
-                        <td className="p-3 font-semibold">{n.name}</td>
-                        <td className="p-3 font-bold text-primary">{n.votes}</td>
-                        <td className="p-3 min-w-[140px]">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
-                              <motion.div
-                                className="h-full bg-primary rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{ duration: 0.6 }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground w-12">
-                              {pct.toFixed(1)}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <Button
-                            size="sm"
-                            onClick={() => vote(n.id)}
-                            disabled={hasVoted}
-                            className="gap-1"
-                          >
-                            {hasVoted ? <><Check size={16} /> تم</> : <><ThumbsUp size={16} /> تصويت</>}
-                          </Button>
-                        </td>
-                      </motion.tr>
-                    );
-                  })
-                )}
-              </AnimatePresence>
-            </tbody>
-          </table>
+                        {rank}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 font-bold text-base md:text-lg">
+                      <span>{n.name}</span>
+                      {isTop && <Star size={16} className="text-[var(--gold)] fill-[var(--gold)]" />}
+                    </div>
+                    <div className="text-center font-extrabold text-primary text-lg">
+                      {n.votes}
+                    </div>
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => vote(n.id)}
+                        disabled={hasVoted}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition disabled:opacity-60 disabled:hover:scale-100"
+                        style={{ background: "var(--gradient-vote-btn)" }}
+                      >
+                        {hasVoted ? (
+                          <>
+                            <Check size={14} /> تم
+                          </>
+                        ) : (
+                          <>
+                            <Heart size={14} className="fill-white" /> صوّت
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </AnimatePresence>
         </div>
+        {totalVotes > 0 && (
+          <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t bg-secondary/20">
+            مجموع الأصوات: <span className="font-bold text-primary">{totalVotes}</span>
+          </div>
+        )}
       </section>
 
       {/* Chart */}
-      <section className="rounded-2xl bg-card border shadow-[var(--shadow-soft)] p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="text-primary" />
-          <h2 className="text-2xl font-bold">إحصائيات أعلى 10 أحياء</h2>
+      <section className="rounded-3xl bg-card border-2 border-[var(--gold)]/30 shadow-[var(--shadow-soft)] p-6">
+        <div className="flex items-center gap-2 mb-4 justify-end">
+          <h2 className="text-xl font-bold">📊 إحصائيات أعلى 10 أحياء</h2>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+            style={{ background: "var(--gradient-bar)" }}
+          >
+            <BarChart3 size={20} />
+          </div>
         </div>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 40 }}>
+            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 50 }}>
+              <defs>
+                <linearGradient id="barGrad" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="oklch(0.72 0.22 320)" />
+                  <stop offset="100%" stopColor="oklch(0.72 0.2 35)" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="4 4" stroke="oklch(0.9 0.02 270)" vertical={false} />
               <XAxis
                 dataKey="name"
-                angle={-30}
+                angle={-40}
                 textAnchor="end"
                 interval={0}
-                tick={{ fontSize: 12, fill: "oklch(0.4 0.04 250)" }}
+                tick={{ fontSize: 12, fill: "oklch(0.4 0.04 270)" }}
               />
               <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip
                 contentStyle={{
                   background: "var(--card)",
                   border: "1px solid var(--border)",
-                  borderRadius: 8,
+                  borderRadius: 12,
                 }}
               />
-              <Bar dataKey="votes" radius={[8, 8, 0, 0]}>
+              <Bar dataKey="votes" radius={[20, 20, 0, 0]}>
                 {chartData.map((_, i) => (
-                  <Cell key={i} fill={i === 0 ? "var(--gold)" : i === 1 ? "var(--silver)" : i === 2 ? "var(--bronze)" : "var(--primary)"} />
+                  <Cell key={i} fill="url(#barGrad)" />
                 ))}
               </Bar>
             </BarChart>
