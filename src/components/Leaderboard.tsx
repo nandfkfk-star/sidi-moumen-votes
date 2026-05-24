@@ -209,7 +209,7 @@ export default function Leaderboard() {
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition disabled:opacity-60 disabled:hover:scale-100"
                         style={{ background: "var(--gradient-vote-btn)" }}
                       >
-                        {hasVoted ? (
+                        {isMine ? (
                           <>
                             <Check size={14} /> تم
                           </>
