@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ref, onValue, push, remove, update, set } from "firebase/database";
-import { ArrowRight, Pencil, Plus, Trash2, X, Check, RotateCcw } from "lucide-react";
+import { ArrowRight, Pencil, Plus, Trash2, X, Check, RotateCcw, MessageSquare } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/admin")({
 const ADMIN_PASS = "abdrhman2006";
 
 type Row = { id: string; name: string; votes: number };
+type CommentRow = { id: string; name: string; text: string; ts: number };
 
 function Admin() {
   const [authed, setAuthed] = useState(false);
@@ -27,6 +29,11 @@ function Admin() {
   const [newName, setNewName] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [editingC, setEditingC] = useState<string | null>(null);
+  const [editCName, setEditCName] = useState("");
+  const [editCText, setEditCText] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem("sm_admin") === "1") {
@@ -43,6 +50,19 @@ function Admin() {
       }));
       arr.sort((a, b) => b.votes - a.votes);
       setRows(arr);
+    });
+    return () => unsub();
+  }, [authed]);
+
+  useEffect(() => {
+    if (!authed) return;
+    const unsub = onValue(ref(db, "comments"), (snap) => {
+      const v = snap.val() || {};
+      const arr: CommentRow[] = Object.entries(v).map(([id, c]: [string, any]) => ({
+        id, name: c.name, text: c.text, ts: c.ts || 0,
+      }));
+      arr.sort((a, b) => b.ts - a.ts);
+      setComments(arr);
     });
     return () => unsub();
   }, [authed]);
@@ -77,6 +97,24 @@ function Admin() {
   const resetVotes = async (id: string) => {
     if (!confirm("إعادة تعيين أصوات هذا الحي إلى 0؟")) return;
     await set(ref(db, `neighborhoods/${id}/votes`), 0);
+  };
+
+  const delComment = async (id: string) => {
+    if (!confirm("هل تريد حذف هذا التعليق؟")) return;
+    await remove(ref(db, `comments/${id}`));
+  };
+  const startEditComment = (c: CommentRow) => {
+    setEditingC(c.id);
+    setEditCName(c.name);
+    setEditCText(c.text);
+  };
+  const saveComment = async (id: string) => {
+    if (!editCName.trim() || !editCText.trim()) return;
+    await update(ref(db, `comments/${id}`), {
+      name: editCName.trim().slice(0, 40),
+      text: editCText.trim().slice(0, 300),
+    });
+    setEditingC(null);
   };
 
   if (!authed) {
@@ -178,6 +216,55 @@ function Admin() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Comments management */}
+        <div className="bg-card border rounded-2xl shadow-[var(--shadow-soft)] overflow-hidden">
+          <div className="p-4 border-b flex items-center gap-2 bg-secondary/30">
+            <MessageSquare size={18} className="text-primary" />
+            <h2 className="font-bold">إدارة التعليقات ({comments.length})</h2>
+          </div>
+          <div className="divide-y">
+            {comments.length === 0 && (
+              <p className="p-6 text-center text-muted-foreground">لا توجد تعليقات</p>
+            )}
+            {comments.map((c) => (
+              <div key={c.id} className="p-4 space-y-2">
+                {editingC === c.id ? (
+                  <>
+                    <Input value={editCName} onChange={(e) => setEditCName(e.target.value)} placeholder="الاسم" maxLength={40} />
+                    <Textarea value={editCText} onChange={(e) => setEditCText(e.target.value)} rows={3} maxLength={300} />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveComment(c.id)} className="gap-1">
+                        <Check size={14} /> حفظ
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingC(null)} className="gap-1">
+                        <X size={14} /> إلغاء
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-bold text-primary">{c.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {c.ts ? new Date(c.ts).toLocaleString("ar") : ""}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{c.text}</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => startEditComment(c)} className="gap-1">
+                        <Pencil size={14} /> تعديل
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => delComment(c.id)} className="gap-1">
+                        <Trash2 size={14} /> حذف
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
