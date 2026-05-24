@@ -217,6 +217,55 @@ function Admin() {
             </tbody>
           </table>
         </div>
+
+        {/* Comments management */}
+        <div className="bg-card border rounded-2xl shadow-[var(--shadow-soft)] overflow-hidden">
+          <div className="p-4 border-b flex items-center gap-2 bg-secondary/30">
+            <MessageSquare size={18} className="text-primary" />
+            <h2 className="font-bold">إدارة التعليقات ({comments.length})</h2>
+          </div>
+          <div className="divide-y">
+            {comments.length === 0 && (
+              <p className="p-6 text-center text-muted-foreground">لا توجد تعليقات</p>
+            )}
+            {comments.map((c) => (
+              <div key={c.id} className="p-4 space-y-2">
+                {editingC === c.id ? (
+                  <>
+                    <Input value={editCName} onChange={(e) => setEditCName(e.target.value)} placeholder="الاسم" maxLength={40} />
+                    <Textarea value={editCText} onChange={(e) => setEditCText(e.target.value)} rows={3} maxLength={300} />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveComment(c.id)} className="gap-1">
+                        <Check size={14} /> حفظ
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingC(null)} className="gap-1">
+                        <X size={14} /> إلغاء
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-bold text-primary">{c.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {c.ts ? new Date(c.ts).toLocaleString("ar") : ""}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{c.text}</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => startEditComment(c)} className="gap-1">
+                        <Pencil size={14} /> تعديل
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => delComment(c.id)} className="gap-1">
+                        <Trash2 size={14} /> حذف
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   );
