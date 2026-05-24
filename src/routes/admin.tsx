@@ -94,9 +94,6 @@ function Admin() {
           <Link to="/" className="block text-center text-sm text-primary hover:underline">
             العودة للموقع
           </Link>
-          <Link to="/" className="block text-center text-sm text-primary hover:underline">
-            العودة للموقع
-          </Link>
         </form>
       </div>
     );
