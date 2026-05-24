@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBZP9Jdov0vSWttmF_vDlT64twJbfXjWog",
@@ -14,6 +15,24 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
+export const auth = getAuth(app);
+
+export function ensureAnonUser(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        unsub();
+        resolve(user.uid);
+      }
+    });
+    if (!auth.currentUser) {
+      signInAnonymously(auth).catch((err) => {
+        unsub();
+        reject(err);
+      });
+    }
+  });
+}
 
 export const INITIAL_NEIGHBORHOODS = [
   "اليقين", "جوهرة", "ضحى", "العلاء", "النخيل", "الرحامنة",
