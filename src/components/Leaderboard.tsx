@@ -27,23 +27,19 @@ const RANK_COLORS = [
 ];
 const rankColor = (i: number) => RANK_COLORS[i % RANK_COLORS.length];
 
-function useVotedSet() {
-  const [voted, setVoted] = useState<Set<string>>(new Set());
+function useVotedOnce() {
+  const [votedId, setVotedId] = useState<string | null>(null);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setVoted(new Set(JSON.parse(raw)));
+      if (raw) setVotedId(raw);
     } catch {}
   }, []);
-  const add = (id: string) => {
-    setVoted((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
-      return next;
-    });
+  const mark = (id: string) => {
+    localStorage.setItem(STORAGE_KEY, id);
+    setVotedId(id);
   };
-  return { voted, add };
+  return { votedId, hasVoted: votedId !== null, mark };
 }
 
 export default function Leaderboard() {
