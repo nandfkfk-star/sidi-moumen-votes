@@ -66,7 +66,7 @@ function Admin() {
   const login = (e: React.FormEvent) => {
     e.preventDefault();
     if (pass === ADMIN_PASS) {
-      sessionStorage.setItem("sm_admin", "1");
+      try { sessionStorage.removeItem("sm_admin"); } catch {}
       setAuthed(true);
     } else {
       alert("كلمة المرور غير صحيحة");
