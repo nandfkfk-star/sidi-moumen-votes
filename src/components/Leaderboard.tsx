@@ -105,6 +105,11 @@ export default function Leaderboard() {
 
   const vote = async (id: string) => {
     if (hasVoted) return;
+    if (!uid) return; // wait for anonymous auth
+    // Atomically claim this voter slot — only first writer succeeds.
+    const voterRef = ref(db, `voters/${uid}`);
+    const tx = await runTransaction(voterRef, (cur) => (cur ? undefined : id));
+    if (!tx.committed) return; // already voted on server
     mark(id);
     await runTransaction(ref(db, `neighborhoods/${id}/votes`), (cur) => (cur || 0) + 1);
   };
