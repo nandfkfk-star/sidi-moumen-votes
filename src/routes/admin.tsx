@@ -35,11 +35,7 @@ function Admin() {
   const [editCName, setEditCName] = useState("");
   const [editCText, setEditCText] = useState("");
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("sm_admin") === "1") {
-      setAuthed(true);
-    }
-  }, []);
+  // Note: no persistent session — password is required on every visit.
 
   useEffect(() => {
     if (!authed) return;
@@ -70,7 +66,7 @@ function Admin() {
   const login = (e: React.FormEvent) => {
     e.preventDefault();
     if (pass === ADMIN_PASS) {
-      sessionStorage.setItem("sm_admin", "1");
+      try { sessionStorage.removeItem("sm_admin"); } catch {}
       setAuthed(true);
     } else {
       alert("كلمة المرور غير صحيحة");

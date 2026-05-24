@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -89,12 +90,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap",
       },
     ],
-    scripts: [
-      {
-        src: "https://pl29467076.effectivecpmnetwork.com/94/d9/07/94d907941924e84a1bf30b58179b0b1b.js",
-        async: true,
-      },
-    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -118,6 +113,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const AD_ID = "sm-ad-script";
+    if (document.getElementById(AD_ID)) return;
+    const s = document.createElement("script");
+    s.id = AD_ID;
+    s.src = "https://pl29467076.effectivecpmnetwork.com/94/d9/07/94d907941924e84a1bf30b58179b0b1b.js";
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
