@@ -40,25 +40,25 @@ function Index() {
       {/* Top brand bar */}
       <div className="sticky top-0 z-30 backdrop-blur-md bg-card/85 border-b border-primary/10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 md:w-12 md:h-12 ring-2 ring-primary/30 rounded-2xl">
+              <MSLogo className="w-full h-full" />
+            </div>
+            <div className="text-right">
+              <h1 className="font-extrabold text-primary text-sm md:text-base leading-tight">
+                ترتيب أحياء سيدي مومن
+              </h1>
+              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1">
+                <Sparkles size={10} /> تصويت لحظي ممتع
+              </p>
+            </div>
+          </div>
           <Link
             to="/admin"
             className="inline-flex items-center gap-1.5 text-xs md:text-sm bg-[oklch(0.92_0.06_220)] text-primary font-bold rounded-full px-3 py-1.5 hover:scale-105 transition"
           >
             <Shield size={14} /> الإدارة
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <h1 className="font-extrabold text-primary text-sm md:text-base leading-tight">
-                ترتيب أحياء سيدي مومن
-              </h1>
-              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                <Sparkles size={10} /> تصويت لحظي ممتع
-              </p>
-            </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 ring-2 ring-primary/30 rounded-2xl">
-              <MSLogo className="w-full h-full" />
-            </div>
-          </div>
         </div>
       </div>
 
