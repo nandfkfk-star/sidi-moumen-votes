@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin")({
   component: Admin,
 });
 
-const ADMIN_PASS = "admin123";
+const ADMIN_PASS = "abdrhman2006";
 
 type Row = { id: string; name: string; votes: number };
 
@@ -91,9 +91,6 @@ function Admin() {
             onChange={(e) => setPass(e.target.value)}
           />
           <Button type="submit" className="w-full">دخول</Button>
-          <p className="text-xs text-muted-foreground text-center">
-            كلمة المرور الافتراضية: admin123
-          </p>
           <Link to="/" className="block text-center text-sm text-primary hover:underline">
             العودة للموقع
           </Link>
