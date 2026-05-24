@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ref, onValue, push, remove, update, set } from "firebase/database";
-import { ArrowRight, Pencil, Plus, Trash2, X, Check, RotateCcw } from "lucide-react";
+import { ArrowRight, Pencil, Plus, Trash2, X, Check, RotateCcw, MessageSquare } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/admin")({
 const ADMIN_PASS = "abdrhman2006";
 
 type Row = { id: string; name: string; votes: number };
+type CommentRow = { id: string; name: string; text: string; ts: number };
 
 function Admin() {
   const [authed, setAuthed] = useState(false);
@@ -27,6 +29,11 @@ function Admin() {
   const [newName, setNewName] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [editingC, setEditingC] = useState<string | null>(null);
+  const [editCName, setEditCName] = useState("");
+  const [editCText, setEditCText] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem("sm_admin") === "1") {
@@ -43,6 +50,19 @@ function Admin() {
       }));
       arr.sort((a, b) => b.votes - a.votes);
       setRows(arr);
+    });
+    return () => unsub();
+  }, [authed]);
+
+  useEffect(() => {
+    if (!authed) return;
+    const unsub = onValue(ref(db, "comments"), (snap) => {
+      const v = snap.val() || {};
+      const arr: CommentRow[] = Object.entries(v).map(([id, c]: [string, any]) => ({
+        id, name: c.name, text: c.text, ts: c.ts || 0,
+      }));
+      arr.sort((a, b) => b.ts - a.ts);
+      setComments(arr);
     });
     return () => unsub();
   }, [authed]);

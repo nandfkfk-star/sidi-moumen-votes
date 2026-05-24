@@ -1,4 +1,4 @@
-import logo from "@/assets/ms-logo.jpeg";
+import logo from "@/assets/ms-logo.png";
 
 export function MSLogo({ className = "" }: { className?: string }) {
   return (
