@@ -99,6 +99,24 @@ function Admin() {
     await set(ref(db, `neighborhoods/${id}/votes`), 0);
   };
 
+  const delComment = async (id: string) => {
+    if (!confirm("هل تريد حذف هذا التعليق؟")) return;
+    await remove(ref(db, `comments/${id}`));
+  };
+  const startEditComment = (c: CommentRow) => {
+    setEditingC(c.id);
+    setEditCName(c.name);
+    setEditCText(c.text);
+  };
+  const saveComment = async (id: string) => {
+    if (!editCName.trim() || !editCText.trim()) return;
+    await update(ref(db, `comments/${id}`), {
+      name: editCName.trim().slice(0, 40),
+      text: editCText.trim().slice(0, 300),
+    });
+    setEditingC(null);
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-secondary/30">
