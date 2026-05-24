@@ -46,7 +46,7 @@ export default function Leaderboard() {
   const [items, setItems] = useState<Neighborhood[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const { voted, add } = useVotedSet();
+  const { votedId, hasVoted, mark } = useVotedOnce();
 
   useEffect(() => {
     const seed = async () => {
