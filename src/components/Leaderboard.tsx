@@ -27,30 +27,26 @@ const RANK_COLORS = [
 ];
 const rankColor = (i: number) => RANK_COLORS[i % RANK_COLORS.length];
 
-function useVotedSet() {
-  const [voted, setVoted] = useState<Set<string>>(new Set());
+function useVotedOnce() {
+  const [votedId, setVotedId] = useState<string | null>(null);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setVoted(new Set(JSON.parse(raw)));
+      if (raw) setVotedId(raw);
     } catch {}
   }, []);
-  const add = (id: string) => {
-    setVoted((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
-      return next;
-    });
+  const mark = (id: string) => {
+    localStorage.setItem(STORAGE_KEY, id);
+    setVotedId(id);
   };
-  return { voted, add };
+  return { votedId, hasVoted: votedId !== null, mark };
 }
 
 export default function Leaderboard() {
   const [items, setItems] = useState<Neighborhood[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const { voted, add } = useVotedSet();
+  const { votedId, hasVoted, mark } = useVotedOnce();
 
   useEffect(() => {
     const seed = async () => {
@@ -92,8 +88,8 @@ export default function Leaderboard() {
   );
 
   const vote = async (id: string) => {
-    if (voted.has(id)) return;
-    add(id);
+    if (hasVoted) return;
+    mark(id);
     await runTransaction(ref(db, `neighborhoods/${id}/votes`), (cur) => (cur || 0) + 1);
   };
 
@@ -179,7 +175,7 @@ export default function Leaderboard() {
             ) : (
               filtered.map((n) => {
                 const rank = sorted.findIndex((x) => x.id === n.id) + 1;
-                const hasVoted = voted.has(n.id);
+                const isMine = votedId === n.id;
                 const isTop = rank <= 3;
                 const color = rankColor(rank - 1);
                 return (
@@ -213,7 +209,7 @@ export default function Leaderboard() {
                         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-white text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition disabled:opacity-60 disabled:hover:scale-100"
                         style={{ background: "var(--gradient-vote-btn)" }}
                       >
-                        {hasVoted ? (
+                        {isMine ? (
                           <>
                             <Check size={14} /> تم
                           </>
