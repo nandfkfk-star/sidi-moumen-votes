@@ -5,7 +5,7 @@ import { Search, Heart, Check, BarChart3, Star } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid,
 } from "recharts";
-import { db, INITIAL_NEIGHBORHOODS } from "@/lib/firebase";
+import { db, INITIAL_NEIGHBORHOODS, ensureAnonUser } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 
 type Neighborhood = { id: string; name: string; votes: number };
@@ -27,7 +27,7 @@ const RANK_COLORS = [
 ];
 const rankColor = (i: number) => RANK_COLORS[i % RANK_COLORS.length];
 
-function useVotedOnce() {
+function useVotedOnce(uid: string | null) {
   const [votedId, setVotedId] = useState<string | null>(null);
   useEffect(() => {
     try {
@@ -35,8 +35,20 @@ function useVotedOnce() {
       if (raw) setVotedId(raw);
     } catch {}
   }, []);
+  // Sync with server vote tied to anonymous UID
+  useEffect(() => {
+    if (!uid) return;
+    const unsub = onValue(ref(db, `voters/${uid}`), (snap) => {
+      const v = snap.val();
+      if (v && typeof v === "string") {
+        setVotedId(v);
+        try { localStorage.setItem(STORAGE_KEY, v); } catch {}
+      }
+    });
+    return () => unsub();
+  }, [uid]);
   const mark = (id: string) => {
-    localStorage.setItem(STORAGE_KEY, id);
+    try { localStorage.setItem(STORAGE_KEY, id); } catch {}
     setVotedId(id);
   };
   return { votedId, hasVoted: votedId !== null, mark };
@@ -46,7 +58,11 @@ export default function Leaderboard() {
   const [items, setItems] = useState<Neighborhood[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const { votedId, hasVoted, mark } = useVotedOnce();
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => {
+    ensureAnonUser().then(setUid).catch(console.error);
+  }, []);
+  const { votedId, hasVoted, mark } = useVotedOnce(uid);
 
   useEffect(() => {
     const seed = async () => {
@@ -89,7 +105,12 @@ export default function Leaderboard() {
 
   const vote = async (id: string) => {
     if (hasVoted) return;
-    mark(id);
+    mark(id); // optimistic local lock
+    if (uid) {
+      const voterRef = ref(db, `voters/${uid}`);
+      const tx = await runTransaction(voterRef, (cur) => (cur ? undefined : id));
+      if (!tx.committed) return; // already voted on server from this device
+    }
     await runTransaction(ref(db, `neighborhoods/${id}/votes`), (cur) => (cur || 0) + 1);
   };
 
